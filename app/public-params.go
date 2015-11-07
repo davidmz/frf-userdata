@@ -1,11 +1,11 @@
 package app
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
 
+	"github.com/boltdb/bolt"
 	"github.com/davidmz/frf-userdata/ffapi"
 	"github.com/davidmz/mustbe"
 	"github.com/gorilla/mux"
@@ -18,18 +18,17 @@ func (a *App) GetPublicParam(r *http.Request) (int, interface{}) {
 	pProps := a.PublicParams[paramName]
 
 	// читаем значение из базы
-	var (
-		js []byte
-		vl interface{}
-	)
-	err := a.DB.QueryRow("select value::text from userdata_public where path = $1", site+"/"+username+"/"+paramName).Scan(&js)
-	if err == sql.ErrNoRows {
-		vl = pProps.Default
-	} else if err == nil {
-		err = json.Unmarshal(js, &vl)
-	}
+	vl := pProps.Default
+	err := a.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(PublicBucketName))
+		js := b.Get([]byte(site + "/" + username + "/" + paramName))
+		if js != nil {
+			return json.Unmarshal(js, &vl)
+		}
+		return nil
+	})
 
-	if err != sql.ErrNoRows && err != nil {
+	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}
 
@@ -87,10 +86,13 @@ func (a *App) PostPublicParam(r *http.Request) (respCode int, respValue interfac
 	}
 
 	// всё в порядке
-	path := site + "/" + username + "/" + paramName
-
-	mustbe.OKVal(a.DB.Exec("delete from userdata_public where path = $1", path))
-	mustbe.OKVal(a.DB.Exec("insert into userdata_public (path, value) values ($1, $2)", path, string(req.Value)))
+	mustbe.OK(a.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(PublicBucketName))
+		return b.Put(
+			[]byte(site+"/"+username+"/"+paramName),
+			[]byte(req.Value),
+		)
+	}))
 
 	return http.StatusOK, nil
 }

@@ -1,13 +1,12 @@
 package app
 
 import (
-	"database/sql"
 	"encoding/json"
 	"os"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -24,11 +23,15 @@ type SiteInfo struct {
 
 type Conf struct {
 	Listen       string
-	DBURL        string
+	DBFile       string
 	LogLevel     string
 	CORSOrigins  []string
 	Sites        map[string]*SiteInfo
 	PublicParams map[string]*ParamProps
+}
+
+func (a *App) Close() {
+	a.DB.Close()
 }
 
 func (a *App) LoadConfig(file string) error {
@@ -42,14 +45,15 @@ func (a *App) LoadConfig(file string) error {
 		return err
 	}
 
-	a.DB, err = sql.Open("postgres", a.DBURL)
+	a.DB, err = bolt.Open(a.DBFile, 0600, nil)
 	if err != nil {
 		return err
 	}
 
-	if err := a.DB.Ping(); err != nil {
+	a.DB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(PublicBucketName))
 		return err
-	}
+	})
 
 	a.Router = mux.NewRouter()
 

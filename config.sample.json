@@ -1,11 +1,11 @@
 {
     "Listen": "localhost:8356",
     "LogLevel": "error",
+    "DBFile": "/path/to/file",
     "CORSOrigins": [
         "https://freefeed.net",
         "https://micropeppa.freefeed.net"
     ],
-    "DBURL": "user=user password=password host=localhost dbname=base sslmode=disable",
     "Sites": {
         "freefeed.net": {
             "APIRoot": "https://freefeed.net"
@@ -15,45 +15,13 @@
         }
     },
     "PublicParams": {
-        "selfInfo": {
-            "Default": {
-                "descr": "",
-                "place": "",
-                "links": []
-            },
-            "MaxRequestSize": 10000,
+        "selfDescr": {
+            "Default": "",
+            "MaxRequestSize": 2000,
             "Schema": {
                 "$schema": "http://json-schema.org/draft-04/schema#",
-                "id": "/",
-                "type": "object",
-                "properties": {
-                    "descr": {
-                        "id": "/descr",
-                        "type": "string",
-                        "maxLength": 500
-                    },
-                    "place": {
-                        "id": "/place",
-                        "type": "string",
-                        "maxLength": 200
-                    },
-                    "links": {
-                        "id": "/links",
-                        "type": "array",
-                        "maxItems": 10,
-                        "items": {
-                            "id": "/links/0",
-                            "type": "string",
-                            "maxLength": 200
-                        }
-                    }
-                },
-                "additionalProperties": false,
-                "required": [
-                    "descr",
-                    "place",
-                    "links"
-                ]
+                "type": "string",
+                "maxLength": 500
             }
         }
     }

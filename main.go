@@ -28,6 +28,7 @@ func main() {
 	if err := app.LoadConfig(confFile); err != nil {
 		log.Fatalf("Can not read config file: %v", err)
 	}
+	defer app.Close()
 
 	app.InitRouter()
 
